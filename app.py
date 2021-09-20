@@ -1,52 +1,83 @@
+This app creates a simple sidebar layout using inline style arguments and the
+dbc.Nav component.
+
+dcc.Location is used to track the current location, and a callback uses the
+current location to render the appropriate page content. The active prop of
+each NavLink is set automatically according to the current pathname. To use
+this feature you must install dash-bootstrap-components >= 0.11.0.
+
+For more details on building multi-page Dash applications, check out the Dash
+documentation: https://dash.plot.ly/urls
+"""
 import dash
 import dash_bootstrap_components as dbc
+import dash_core_components as dcc
+import dash_html_components as html
+from dash.dependencies import Input, Output
 
-"""
-https://github.com/facultyai/dash-bootstrap-components
-dash-bootstrap-components provides Bootstrap components.
-Plotly Dash is great! However, creating the initial layout can require a lot
-of boilerplate. dash-bootstrap-components reduces this boilerplate by providing
-standard layouts and high-level components.
-A good way to start customising the stylesheet is to use an alternative
-pre-compiled theme. Bootswatch is a great place to find new themes. Links to
-CDNs for each of the Bootswatch styles are also included , and can be used
-with the external_stylesheets argument of the Dash constructor:
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.CERULEAN])
-Go to https://bootswatch.com/ to preview these Bootswatch themes:
-dbc.themes.BOOTSTRAP
-dbc.themes.CERULEAN
-dbc.themes.COSMO
-dbc.themes.CYBORG
-dbc.themes.DARKLY
-dbc.themes.FLATLY
-dbc.themes.JOURNAL
-dbc.themes.LITERA
-dbc.themes.LUMEN
-dbc.themes.LUX
-dbc.themes.MATERIA
-dbc.themes.MINTY
-dbc.themes.PULSE
-dbc.themes.SANDSTONE
-dbc.themes.SIMPLEX
-dbc.themes.SKETCHY
-dbc.themes.SLATE
-dbc.themes.SOLAR
-dbc.themes.SPACELAB
-dbc.themes.SUPERHERO
-dbc.themes.UNITED
-dbc.themes.YETI
-"""
+app = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
 
-external_stylesheets = [
-    dbc.themes.LUX, # Bootswatch theme
-    'https://use.fontawesome.com/releases/v5.9.0/css/all.css', # for social media icons
-]
+# the style arguments for the sidebar. We use position:fixed and a fixed width
+SIDEBAR_STYLE = {
+    "position": "fixed",
+    "top": 0,
+    "left": 0,
+    "bottom": 0,
+    "width": "16rem",
+    "padding": "2rem 1rem",
+    "background-color": "#f8f9fa",
+}
 
-meta_tags=[
-    {'name': 'viewport', 'content': 'width=device-width, initial-scale=1'}
-]
+# the styles for the main content position it to the right of the sidebar and
+# add some padding.
+CONTENT_STYLE = {
+    "margin-left": "18rem",
+    "margin-right": "2rem",
+    "padding": "2rem 1rem",
+}
 
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets, meta_tags=meta_tags)
-app.config.suppress_callback_exceptions = True
-app.title = 'Interest Rate Predictor' # appears in browser title bar
-server = app.server
+sidebar = html.Div(
+    [
+        html.H2("Sidebar", className="display-4"),
+        html.Hr(),
+        html.P(
+            "A simple sidebar layout with navigation links", className="lead"
+        ),
+        dbc.Nav(
+            [
+                dbc.NavLink("Home", href="/", active="exact"),
+                dbc.NavLink("Page 1", href="/page-1", active="exact"),
+                dbc.NavLink("Page 2", href="/page-2", active="exact"),
+            ],
+            vertical=True,
+            pills=True,
+        ),
+    ],
+    style=SIDEBAR_STYLE,
+)
+
+content = html.Div(id="page-content", style=CONTENT_STYLE)
+
+app.layout = html.Div([dcc.Location(id="url"), sidebar, content])
+
+
+@app.callback(Output("page-content", "children"), [Input("url", "pathname")])
+def render_page_content(pathname):
+    if pathname == "/":
+        return html.P("This is the content of the home page!")
+    elif pathname == "/page-1":
+        return html.P("This is the content of page 1. Yay!")
+    elif pathname == "/page-2":
+        return html.P("Oh cool, this is page 2!")
+    # If the user tries to reach a different page, return a 404 message
+    return dbc.Jumbotron(
+        [
+            html.H1("404: Not found", className="text-danger"),
+            html.Hr(),
+            html.P(f"The pathname {pathname} was not recognised..."),
+        ]
+    )
+
+
+if __name__ == "__main__":
+    app.run_server(port=8888)
